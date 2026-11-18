@@ -1,0 +1,246 @@
+/* ==========================================================================
+   HỆ THỐNG QUẢN LÝ NHÀ TRỌ & THANH TOÁN TIỀN PHÒNG - DESIGN SYSTEM CSS
+   Style: Modern SaaS Dashboard (Teal Trust + Semantic Status Colors)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --color-primary: #0f766e;
+  --color-primary-hover: #115e59;
+  --color-secondary: #14b8a6;
+  --color-accent: #0369a1;
+  --color-bg: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-border: #e2e8f0;
+
+  /* Trạng thái trực quan: Xanh lá (Đã đóng/Phòng trống), Vàng (Chờ duyệt/Chờ đóng), Đỏ (Quá hạn sau ngày 15 / Cần đọc) */
+  --status-green-bg: #ecfdf5;
+  --status-green-text: #047857;
+  --status-green-border: #6ee7b7;
+
+  --status-yellow-bg: #fffbeb;
+  --status-yellow-text: #b45309;
+  --status-yellow-border: #fcd34d;
+
+  --status-red-bg: #fef2f2;
+  --status-red-text: #b91c1c;
+  --status-red-border: #fca5a5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ==========================================================================
+   HIỆU ỨNG TOAST NOTIFICATION 10 GIÂY THU VÀO BIỂU TƯỢNG CHIẾC CHUÔNG (BELL)
+   ========================================================================== */
+
+#toast-container {
+  position: fixed;
+  top: 74px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 370px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.toast-popup {
+  pointer-events: auto;
+  background: #ffffff;
+  border-left: 5px solid #0f766e;
+  border-radius: 12px;
+  box-shadow: 0 14px 30px -5px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+  padding: 14px 16px 18px 16px;
+  position: relative;
+  overflow: hidden;
+  transform-origin: top right;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border-top: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.toast-popup.toast-danger {
+  border-left-color: #dc2626;
+  background: #fffafa;
+}
+
+.toast-popup.toast-warning {
+  border-left-color: #d97706;
+  background: #fffdf7;
+}
+
+.toast-popup.toast-success {
+  border-left-color: #059669;
+  background: #f6fef9;
+}
+
+/* Khi hết 10 giây, Toast thu nhỏ và bay thẳng lên vị trí Chiếc chuông ở góc phải trên cùng */
+.toast-popup.shrinking-to-bell {
+  animation: shrinkIntoBell 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+.toast-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(90deg, #0f766e, #14b8a6);
+  transform-origin: left;
+  animation: toastCountdown10s 10s linear forwards;
+}
+
+.toast-popup.toast-danger .toast-progress-bar {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+
+.toast-popup.toast-warning .toast-progress-bar {
+  background: linear-gradient(90deg, #d97706, #fbbf24);
+}
+
+@keyframes toastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(60px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toastCountdown10s {
+  0% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes shrinkIntoBell {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  60% {
+    opacity: 0.75;
+    transform: translate(-18px, -36px) scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-24px, -58px) scale(0.05);
+  }
+}
+
+/* Hiệu ứng rung Chiếc chuông khi Toast thu vào hoặc có thông báo mới */
+@keyframes bellRingShake {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(18deg) scale(1.12); }
+  30% { transform: rotate(-16deg) scale(1.12); }
+  45% { transform: rotate(12deg); }
+  60% { transform: rotate(-10deg); }
+  75% { transform: rotate(6deg); }
+  100% { transform: rotate(0); }
+}
+
+.bell-ringing {
+  animation: bellRingShake 0.7s ease-in-out;
+}
+
+/* ==========================================================================
+   HIGHLIGHT PHÒNG QUÁ HẠN SAU NGÀY 15 & NHÃN "CẦN ĐỌC"
+   ========================================================================== */
+
+.room-card-overdue {
+  border: 2px solid #ef4444 !important;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 45%) !important;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.14) !important;
+}
+
+.unread-feedback-card {
+  border-left: 5px solid #dc2626 !important;
+  background: linear-gradient(90deg, #fef2f2 0%, #ffffff 35%) !important;
+}
+
+@keyframes pulseRedBadge {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
+.badge-pulse-red {
+  animation: pulseRedBadge 1.8s infinite;
+}
+
+/* ==========================================================================
+   MẪU HỢP ĐỒNG PHÁP LÝ VIỆT NAM & HÓA ĐƠN IN ẤN
+   ========================================================================== */
+
+.vn-legal-contract {
+  font-family: 'Times New Roman', Times, serif;
+  color: #000000;
+  line-height: 1.65;
+  background: #ffffff;
+  padding: 32px 40px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-area,
+  #printable-area * {
+    visibility: visible;
+  }
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

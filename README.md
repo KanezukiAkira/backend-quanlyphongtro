@@ -1,92 +1,67 @@
-# Hệ Thống Quản Lý Phòng Trọ - Backend (FastAPI + MySQL)
+# Hệ Thống Quản Lý Nhà Trọ và Thanh Toán Tiền Phòng (FastAPI + MySQL + HTML/CSS/JS)
 
-Dự án Backend quản lý phòng trọ chuyên nghiệp, đầy đủ các tính năng cơ bản và nâng cao theo đúng yêu cầu đề bài.
-
-## 🚀 Công Nghệ Sử Dụng
-- **Ngôn ngữ**: Python 3.10+
-- **Framework**: FastAPI (RESTful API, Async, Swagger UI)
-- **Database**: MySQL 8.0 (kết nối qua SQLAlchemy 2.0 & PyMySQL)
-- **Xác thực & Bảo mật**: JWT Bearer Token, Bcrypt Password Hashing, RBAC (Landlord & Tenant)
-- **Kiểm thử tự động**: 30/30 Test Cases tích hợp (Pass 100%)
+Hệ thống phần mềm hoàn chỉnh đáp ứng đầy đủ nghiệp vụ văn hóa thuê trọ và quy định pháp luật Việt Nam (Bộ luật Dân sự 2015 & Luật Nhà ở 2023), được thiết kế theo kiến trúc **Modular / Service Architecture**.
 
 ---
 
-## 📋 Các Chức Năng Chính
-1. **Quản lý Tài khoản & Phân quyền**:
-   - Tài khoản **Chủ trọ (Landlord)**: Cố định mặc định (`admin` / `admin123`).
-   - Tài khoản **Khách thuê (Tenant)**: Tự đăng ký tài khoản (họ tên, số điện thoại, mật khẩu).
-   - Chủ trọ có API lọc danh sách khách thuê chưa ký hợp đồng để thêm vào phòng.
-2. **Quản lý Phòng trọ (Room Service)**:
-   - Thêm, sửa, xóa, tìm kiếm phòng, giá thuê, diện tích, sức chứa.
-   - Trạng thái tự động: `AVAILABLE` (Trống), `RENTED` (Đang thuê), `MAINTENANCE` (Bảo trì).
-3. **Quản lý Hợp đồng (Contract Service)**:
-   - Ký hợp đồng gán khách thuê vào phòng $\rightarrow$ Tự động chuyển phòng sang `RENTED`.
-   - Quy định tiền cọc, đơn giá điện (đ/kWh), nước (đ/m3), phí dịch vụ (rác, wifi).
-   - Khi thanh lý hợp đồng $\rightarrow$ Tự động trả phòng về `AVAILABLE`.
-4. **Ghi chỉ số Điện, Nước theo tháng (Utility Service)**:
-   - Ghi chỉ số định kỳ theo tháng `YYYY-MM`.
-   - Tự động lấy chỉ số cuối của tháng trước làm chỉ số đầu tháng này.
-5. **Tự động Lập Hóa Đơn (Billing Service)**:
-   - Lập hóa đơn hàng loạt hoặc đơn lẻ cho tất cả phòng có hợp đồng hiệu lực.
-   - Công thức tính tự động:
-     $$\text{Tổng tiền} = \text{Tiền phòng} + (\Delta \text{Điện} \times \text{Đơn giá}) + (\Delta \text{Nước} \times \text{Đơn giá}) + \text{Phí dịch vụ}$$
-6. **Thanh toán & Công nợ (Payment Tracking)**:
-   - **Quy tắc**: Chỉ chấp nhận thanh toán đủ 100% (`PAID`), không hỗ trợ thanh toán một phần.
-   - Ghi nhận ngày giờ thanh toán, hình thức (Tiền mặt / Chuyển khoản), ngăn thanh toán trùng lặp.
-7. **Thống kê & Báo cáo (Stats Service)**:
-   - Doanh thu theo tháng, biểu đồ lịch sử, tổng nợ chưa thu, tỷ lệ lấp đầy phòng.
+## 🏗️ 1. Kiến Trúc Dịch Vụ (Modular / Service Architecture)
+
+Hệ thống được chia thành 6 Service độc lập tương tác qua RESTful API (`/api/*`):
+1. **Auth & Account Service** (`app/services/auth_service.py`, `app/api/auth.py`):
+   - Phân quyền Chủ trọ (`LANDLORD` - `admin`) và Tài khoản Phòng (`TENANT` - `[Số tầng].[Số phòng]` từ `1.1` đến `3.5`).
+   - Quản lý phiên đăng nhập bằng `token_version` trong JWT: Khi chủ trọ bấm **"Khách trả phòng / Reset tài khoản"**, hệ thống lập tức thu hồi toàn bộ thiết bị đang đăng nhập vào phòng đó.
+2. **Room Service** (`app/services/room_service.py`, `app/api/rooms.py`):
+   - Quản lý tầng, phòng, giá thuê cơ bản (mặc định `2.000.000 VNĐ/tháng`, tùy chỉnh theo phòng), trạng thái (`AVAILABLE`, `RENTED`, `MAINTENANCE`).
+   - Quản lý phụ phí cố định tách biệt: Phí gửi xe (`100.000đ`), Phí rác/vệ sinh (`30.000đ`), Phí Wifi (`50.000đ`), Phí bảo trì điện nước (`20.000đ`).
+3. **Tenant & 30-Day Archive Service** (`app/services/tenant_service.py`, `app/api/tenants.py`):
+   - Khai báo hồ sơ khách thuê lần đầu (Họ tên, Giới tính, Ngày sinh, SĐT, Gmail, CCCD, Quê quán).
+   - Cơ chế **Lưu trữ tạm 30 ngày (`ArchivedTenant`)**: Khi khách trả phòng, hồ sơ khách cũ được chuyển vào trạng thái `ARCHIVED` với mốc `deleted_at` và giữ đúng **30 ngày** trước khi tự động xóa sạch bằng Cronjob.
+4. **Contract Service** (`app/services/contract_service.py`, `app/api/contracts.py`):
+   - Hợp đồng thuê phòng chuẩn pháp luật Việt Nam (Quốc hiệu, Tiêu ngữ, căn cứ Bộ luật Dân sự & Luật Nhà ở, Bên A, Bên B, điều khoản, chữ ký).
+   - Hỗ trợ xem trực tiếp, in ấn và tải xuống file **PDF chuẩn tiếng Việt** (`/api/contracts/{id}/pdf`).
+5. **Billing, Payment & Debt Service** (`app/services/billing_service.py`, `app/api/invoices.py`):
+   - Ghi chỉ số điện/nước hằng tháng, tự động tính tiền và phát hành hóa đơn.
+   - Hạn đóng tiền cố định: **Ngày 10 hằng tháng**. Sau 5 ngày (tức từ **Ngày 15 hằng tháng**), tự động chuyển sang **`OVERDUE` (Quá hạn / Nợ)** và đánh dấu đỏ phòng đó.
+   - **Phương thức 1 (Online Demo)**: Thanh toán qua **MoMo, Thẻ Visa, Ngân hàng liên kết** -> Gạch nợ ngay lập tức, gửi thông báo & Hóa đơn PDF qua Gmail.
+   - **Phương thức 2 (VietQR & Upload Bill UNC)**: Hiển thị mã VietQR, khách tải ảnh chụp Bill chuyển khoản lên hệ thống -> Chủ trọ bấm **"Kiểm tra/Đối soát giao dịch Demo"** và **"Xác nhận đã thu tiền"** -> Gửi biên lai PDF qua Gmail.
+6. **Feedback & Notification Service** (`app/services/feedback_service.py`, `app/services/notification_service.py`):
+   - Khách gửi Feedback phân loại (Điện nước, An ninh, Vệ sinh, Góp ý chung). Phòng có Feedback mới tự động đẩy lên đầu danh sách Admin với nhãn đỏ **"Cần đọc (Chưa đọc)"**.
+   - Hệ thống **Toast Notification 10 giây**: Popup trượt ra góc phải màn hình trong đúng 10 giây, sau đó tự động thu nhỏ bay vào biểu tượng **Chiếc chuông (Bell Icon)**.
 
 ---
 
-## 🛠️ Hướng Dẫn Cài Đặt & Chạy Server
+## 🚀 2. Hướng Dẫn Chạy Nhanh (Quick Start)
 
-### 1. Chuẩn bị môi trường
-- Python 3.10 trở lên
-- MySQL Server đang chạy trên cổng `3306`
-
-### 2. Cài đặt thư viện
+### Bước 1: Khởi tạo 15 Phòng (3 Tầng) & Dữ liệu mẫu thực tế Việt Nam
 ```bash
 cd backend
-python -m venv venv
-# Kích hoạt venv (Windows):
-.\venv\Scripts\activate
-# Cài đặt requirements:
-pip install -r requirements.txt
-```
-
-### 3. Cấu hình biến môi trường
-Tạo file `backend/.env` (tham khảo `backend/.env.example`):
-```env
-PROJECT_NAME="Quản Lý Phòng Trọ"
-DATABASE_URL=mysql+pymysql://root:123456@localhost:3306/quanlyphongtro_db
-SECRET_KEY=your_secret_jwt_key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-```
-
-### 4. Khởi chạy Server
-```bash
-python run.py
-```
-Server sẽ tự động:
-- Kiểm tra và tạo database `quanlyphongtro_db` trên MySQL nếu chưa có.
-- Sinh đầy đủ tất cả các bảng quan hệ.
-- Nạp sẵn tài khoản Chủ trọ cố định: `admin` / `admin123`.
-
-### 5. Khởi tạo dữ liệu mẫu Demo (Tùy chọn)
-Để có sẵn dữ liệu 4 phòng trọ, 2 khách thuê, hợp đồng, chỉ số điện nước và hóa đơn phục vụ thuyết trình:
-```bash
 python seed_demo.py
 ```
 
-### 6. Chạy Kiểm Thử Tự Động (Integration Tests)
+### Bước 2: Khởi chạy Server (Backend + Frontend Portal)
 ```bash
-python test_integration.py
+cd backend
+python run.py
 ```
+
+### Bước 3: Truy cập Hệ thống
+- **Giao diện Web Portal (Admin & Tenant HTML/CSS/JS)**: [http://127.0.0.1:8000/app](http://127.0.0.1:8000/app) (hoặc mở trực tiếp file `frontend/index.html`)
+- **Swagger UI API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
-## 📖 Tài Liệu API Trực Quan (Swagger UI)
-Sau khi bật server, truy cập:
-- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+## 🔑 3. Tài Khoản Demo Đã Nạp Sẵn (`seed_demo.py`)
+
+| Vai trò / Kịch bản | Tên đăng nhập | Mật khẩu | Mô tả kịch bản |
+|---|---|---|---|
+| **Chủ trọ (Admin)** | `admin` | `admin123` | Quản lý toàn bộ 15 phòng 3 tầng, tính tiền, duyệt bill, kiểm tra nợ, kho lưu trữ 30 ngày |
+| **Phòng 1.1** (Đã đóng tiền) | `1.1` | `123456` | Nguyễn Văn An - Đã thanh toán qua **MoMo**, có Hợp đồng PDF & phản hồi Feedback |
+| **Phòng 1.2** (Đã đóng tiền) | `1.2` | `123456` | Trần Thị Bích Ngọc - Đã thanh toán qua **Thẻ Visa** |
+| **Phòng 2.1** (Đã đóng tiền) | `2.1` | `123456` | Võ Thị Thanh Thảo - Đã thanh toán qua **Ngân hàng liên kết** |
+| **Phòng 1.3** (Chờ duyệt Bill) | `1.3` | `123456` | Lê Hoàng Nam - Đã tải lên ảnh Bill UNC Vietcombank chờ Chủ trọ duyệt |
+| **Phòng 2.2** (Chờ duyệt Bill) | `2.2` | `123456` | Đặng Quốc Khánh - Đã tải lên ảnh Bill UNC MB Bank + Có Feedback mới **"Cần đọc"** |
+| **Phòng 1.4** (Quá hạn / Nợ) | `1.4` | `123456` | Phạm Minh Tuấn - **Quá hạn sau ngày 15**, nợ cả tháng `2026-10` và `2026-11` + Có Feedback mới |
+| **Phòng 2.3** (Quá hạn / Nợ) | `2.3` | `123456` | Hoàng Thị Mai Hương - **Quá hạn sau ngày 15**, nợ cả tháng `2026-10` và `2026-11` |
+| **Phòng 3.1** (Quá hạn / Nợ) | `3.1` | `123456` | Bùi Tiến Dũng - **Quá hạn sau ngày 15**, nợ cả tháng `2026-10` và `2026-11` |
+| **Phòng 3.2, 3.3** (Đang thuê) | `3.2`, `3.3` | `123456` | Có hóa đơn tháng `2026-11` chờ thanh toán để test Cổng thanh toán Online / VietQR |
+| **Phòng 1.5, 2.4, 3.4, 3.5** | `2.4` | `123456` | Phòng trống - Đăng nhập để test quy trình **Khai báo thông tin khách thuê lần đầu** |

@@ -11,8 +11,11 @@ class DashboardStatsResponse(BaseModel):
     total_tenants: int
     active_contracts: int
     unpaid_invoices_count: int
+    pending_approval_invoices_count: int = 0
     paid_invoices_count: int
     overdue_invoices_count: int
+    unread_feedbacks_count: int = 0
+    archived_tenants_count: int = 0
     monthly_expected_revenue: float
     monthly_actual_revenue: float
     total_unpaid_amount: float
@@ -36,10 +39,14 @@ class OverdueInvoiceItem(BaseModel):
     invoice_code: str
     room_id: int
     room_number: Optional[str] = None
+    floor: Optional[int] = None
     tenant_id: int
     tenant_name: Optional[str] = None
     tenant_phone: Optional[str] = None
+    tenant_email: Optional[str] = None
     month_year: str
     total_amount: float
     due_date: date
+    overdue_date: Optional[date] = None
     days_overdue: int
+    status: str = "OVERDUE"
